@@ -6,7 +6,7 @@
 <title>Clean Beans LLC | Hudson, WI | New website coming soon</title>
 <meta name="description" content="Clean Beans LLC, cleaning services in Hudson, WI and the St. Croix Valley. Our new website is on the way. Call or text (715) 222-2444.">
 <meta name="robots" content="noindex">
-<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,7 +28,8 @@
   .stripe { height: 6px; background: repeating-linear-gradient(-45deg, var(--green) 0 14px, var(--ink-deep) 14px 28px); }
   main { flex: 1; display: grid; place-items: center; padding: 48px 20px; }
   .card { width: 100%; max-width: 640px; text-align: center; }
-  .logo { width: 132px; height: 132px; margin: 0 auto 18px; display: block; }
+  .logo { width: min(100%, 420px); height: auto; margin: 0 auto 10px; display: block; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
   h1 { font-family: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif; font-weight: 800; font-size: clamp(2.8rem, 9vw, 4.6rem); line-height: .95; margin: 0; letter-spacing: .01em; }
   .sub { font-family: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif; font-weight: 700; color: var(--green); letter-spacing: .12em; text-transform: uppercase; margin: 10px 0 26px; font-size: 1.05rem; }
   .lead { font-size: 1.2rem; line-height: 1.55; color: var(--soft); margin: 0 auto 28px; max-width: 32em; }
@@ -53,9 +54,9 @@
 <div class="stripe" aria-hidden="true"></div>
 <main>
   <div class="card">
-    <img class="logo" src="logo.svg" alt="" width="132" height="132">
-    <h1>Clean Beans</h1>
-    <p class="sub">LLC &middot; Hudson, WI</p>
+    <img class="logo" src="logo.svg" alt="Clean Beans LLC, Est. 2014, insured and bonded" width="760" height="620">
+    <h1 class="sr-only">Clean Beans LLC</h1>
+    <p class="sub">Hudson, WI &middot; St. Croix Valley</p>
     <p class="lead">Our new website is on the way. In the meantime, follow Clean Beans on Facebook for before-and-afters and job updates, or reach Becky directly.</p>
     <a class="phone" href="tel:7152222444"><span class="call-label">Call or text Becky</span>(715) 222-2444</a>
     <div class="btns">

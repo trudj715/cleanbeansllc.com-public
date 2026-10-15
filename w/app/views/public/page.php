@@ -6,7 +6,7 @@ $isHome = $page['slug'] === 'home';
 ?>
 <?php if ($isHome): ?>
 <section class="hero<?= $hero ? '' : ' plain-hero' ?>">
-  <?php if (!$hero): ?><img class="hero-sparkles" src="<?= e(asset('assets/img/hero-sparkles.svg')) ?>" alt=""><?php endif; ?>
+  <?php if (!$hero): ?><img class="hero-sparkles" src="<?= e(asset('assets/img/logo-full.svg')) ?>" alt="Clean Beans LLC, Est. 2014, insured and bonded"><?php endif; ?>
   <?php if ($hero): ?><div class="hero-media"><?= media_img($hero, '', '100vw', false, '') ?></div><?php endif; ?>
   <div class="wrap">
     <div class="hero-inner">

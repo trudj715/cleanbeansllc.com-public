@@ -103,7 +103,7 @@ p { margin: 0 0 1em; }
     radial-gradient(circle at 70% 90%, rgba(61,187,99,.16), transparent 38%),
     var(--ink-deep); }
 .hero.plain-hero::after { display: none; }
-.hero-sparkles { position: absolute; right: 4%; top: 50%; transform: translateY(-50%); width: min(38vw, 440px); opacity: .9; pointer-events: none; }
+.hero-sparkles { position: absolute; right: 3%; top: 50%; transform: translateY(-50%); width: min(40vw, 500px); height: auto; pointer-events: none; }
 @media (max-width: 900px) { .hero-sparkles { display: none; } }
 .hero-creds { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 22px; padding: 0; margin: 22px 0 0; color: #d6e6dc; font-weight: 500; }
 .hero-creds li::before { content: "\2713"; color: var(--green); font-weight: 700; margin-right: 8px; }

@@ -1,5 +1,16 @@
 # Clean Beans LLC website — Changelog
 
+## 1.0.1 — 2026-10-14 — Clean Beans logo
+
+- New logo redrawn from Becky's embroidered patch and flyers: the sunglasses bean with the gritted-teeth grimace, raised
+  glove hand, broom and bucket; arched CLEAN BEANS with Est. 2014 / LLC. / Insured, bonded (no phone number).
+  Hand-drawn outlines and a satin-stitch texture to keep the patch's feel. Lettering outlined from Patrick Hand (OFL).
+- Files: `assets/img/logo.svg` (mascot: header, footer, admin, installer), `logo-full.svg` (light lettering, for dark
+  backgrounds: home hero, under-construction page), `logo-badge.svg` / `logo-badge.png` (navy badge; social/search logo),
+  favicon.svg / favicon.ico / apple-touch-icon.png (bean face).
+- Under-construction page leads with the full logo; Facebook and TikTok (@clean.beans.llc) buttons unchanged.
+- Removed the placeholder hero-sparkles.svg.
+
 ## 1.0.0 — 2026-10-14 — First build (staged)
 
 Built from the kmtow.com 3.0.0 platform (custom PHP/MySQL site + owner admin).

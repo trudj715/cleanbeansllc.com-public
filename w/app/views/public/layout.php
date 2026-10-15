@@ -24,7 +24,7 @@ $business = [
                   'addressRegion' => setting('state', 'WI'), 'postalCode' => setting('zip', '54016'), 'addressCountry' => 'US']),
     'priceRange' => '$$',
     'areaServed' => setting('service_area_summary', 'Hudson, WI and the St. Croix Valley'),
-    'logo' => abs_url('assets/img/logo.svg'),
+    'logo' => abs_url('assets/img/logo-badge.png'),
 ];
 if ($social) $business['sameAs'] = array_values(array_map(fn($s) => $s[0], $social));
 ?><!doctype html>
@@ -57,7 +57,7 @@ if ($social) $business['sameAs'] = array_values(array_map(fn($s) => $s[0], $soci
 <header class="site-header">
   <div class="wrap header-row">
     <a class="brand" href="<?= e(url()) ?>" aria-label="<?= e($company) ?> home">
-      <img src="<?= e(asset('assets/img/logo.svg')) ?>" alt="" width="64" height="64">
+      <img src="<?= e(asset('assets/img/logo.svg')) ?>" alt="" width="74" height="64">
       <span class="brand-text"><strong><?= e(setting('brand_name', 'Clean Beans')) ?></strong><small><?= e(setting('tagline', 'LLC · Hudson, WI')) ?></small></span>
     </a>
     <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav">Menu</button>
@@ -83,7 +83,7 @@ if ($social) $business['sameAs'] = array_values(array_map(fn($s) => $s[0], $soci
 <footer class="site-footer">
   <div class="wrap footer-top">
     <div class="footer-brand">
-      <img src="<?= e(asset('assets/img/logo.svg')) ?>" alt="" width="72" height="72" loading="lazy">
+      <img src="<?= e(asset('assets/img/logo.svg')) ?>" alt="" width="83" height="72" loading="lazy">
       <div>
         <h2><?= e($company) ?></h2>
         <?php $addr = array_filter([$addr1, $addr2], fn($l) => $l !== ''); if ($addr): ?><p><?= implode('<br>', array_map('e', $addr)) ?></p><?php endif; ?>
