@@ -6,7 +6,7 @@
  */
 declare(strict_types=1);
 
-const CONTENT_REV = 2;
+const CONTENT_REV = 3;
 
 function run_content_migrations(): void
 {
@@ -25,6 +25,10 @@ function run_content_migrations(): void
         if ((int)setting('content_rev', '1') < 2) {
             migration_2_facebook_photos();
             setting_save('content_rev', '2');
+        }
+        if ((int)setting('content_rev', '1') < 3) {
+            migration_3_featured_photos();
+            setting_save('content_rev', '3');
         }
     } catch (Throwable $e) {
         error_log('Content migration failed: ' . $e->getMessage());
@@ -132,6 +136,71 @@ function migration_2_facebook_photos(): void
                 ['media_ids' => $ids($plan['gallery']), 'big' => 1]);
             $add('cta', 'Want your place looking like this?', '<p>Tell Becky about the space and what you need. You\'ll get a straight answer on what it takes and what it costs.</p>');
             $add('request_form', 'Request a free quote', '', ['band' => 1]);
+        }
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
+    }
+}
+
+/**
+ * Rev 3 (v1.2.0): featured photos from the Facebook Cover photos and Profile pictures albums.
+ * - full clean-room shots become page banners and lead the home "Recent work" gallery
+ * - Our Work: full clean rooms first, then adverts, then job photos (duplicates left out)
+ * - text-message / Messenger screenshots are removed from the photo library
+ * Banners and galleries are only changed where they still hold what rev 2 put there.
+ */
+function migration_3_featured_photos(): void
+{
+    @unlink(APP_ROOT . '/fbimport.php');
+    $plan = require APP_DIR . '/content/photos-2026-10b.php';
+    $rev2 = require APP_DIR . '/content/photos-2026-10.php';
+    $ids = fn(array $list) => array_values(array_unique(array_filter(array_map('media_id_for_fbid', $list))));
+    if (!$ids($plan['featured'])) return;   // featured photos not imported on this install
+    $now = now();
+    $pageId = fn(string $slug) => db_val('SELECT id FROM pages WHERE slug=?', [$slug]);
+
+    db()->beginTransaction();
+    try {
+        foreach ($plan['alt'] as $mid => $alt) {
+            if (media_id_for_fbid($mid)) db_exec('UPDATE media SET alt_text=? WHERE id=?', [$alt, (int)$mid]);
+        }
+        // Banners: replace rev 2's choice (or an empty banner), leave owner changes alone
+        foreach ($plan['heroes'] as $slug => $mid) {
+            $pid = $pageId($slug);
+            if (!$pid || !media_id_for_fbid($mid)) continue;
+            $old = $rev2['heroes'][$slug] ?? null;
+            db_exec('UPDATE pages SET hero_media_id=?, updated_at=? WHERE id=? AND (hero_media_id IS NULL OR hero_media_id=?)',
+                [(int)$mid, $now, $pid, $old ?? 0]);
+        }
+        // Galleries: home "Recent work" and the Our Work page, if still as rev 2 left them
+        $setGallery = function (?int $pid, string $where, array $oldIds, array $newIds) use ($now) {
+            if (!$pid || !$newIds) return;
+            foreach (db_all("SELECT id, data FROM sections WHERE page_id=? AND type='gallery' AND $where", [$pid]) as $sec) {
+                $d = json_decode((string)$sec['data'], true) ?: [];
+                if (array_map('intval', $d['media_ids'] ?? []) !== array_map('intval', $oldIds)) continue;
+                $d['media_ids'] = $newIds;
+                db_exec('UPDATE sections SET data=?, updated_at=? WHERE id=?', [json_encode($d), $now, $sec['id']]);
+            }
+        };
+        $setGallery($pageId('home'), "heading='Recent work'", $ids($rev2['home']), $ids($plan['home']));
+        $setGallery($pageId('our-work'), "heading=''", $ids($rev2['gallery']), $ids($plan['gallery']));
+
+        // Remove screenshots of text messages / Messenger chats from the library
+        foreach ($plan['delete'] as $mid) {
+            if (media_id_for_fbid($mid)) {
+                // drop from any gallery first so the delete is allowed
+                foreach (db_all("SELECT id, data FROM sections WHERE type='gallery'") as $sec) {
+                    $d = json_decode((string)$sec['data'], true) ?: [];
+                    $list = array_map('intval', $d['media_ids'] ?? []);
+                    if (in_array((int)$mid, $list, true)) {
+                        $d['media_ids'] = array_values(array_diff($list, [(int)$mid]));
+                        db_exec('UPDATE sections SET data=? WHERE id=?', [json_encode($d), $sec['id']]);
+                    }
+                }
+                media_delete((int)$mid);
+            }
         }
         db()->commit();
     } catch (Throwable $e) {

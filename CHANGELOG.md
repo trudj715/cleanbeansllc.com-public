@@ -1,5 +1,19 @@
 # Clean Beans LLC website — Changelog
 
+## 1.2.0 — 2026-10-15 — Featured photos lead the site
+
+- Imported the Facebook **Cover photos** (13) and **Profile pictures** (9) albums: full clean-room shots
+  (whole-house collage, remodeled bathroom, living room), the embroidered logo patches, a hand-drawn logo
+  and the business card. Library ids 431-451.
+- Content rev 3 (`migration_3_featured_photos`, plan `app/content/photos-2026-10b.php`), applied on first load:
+  - page banners: House Cleaning = living room, Rentals = whole-house collage, Construction = remodeled bathroom,
+    Our Work = living room (others unchanged); only replaces banners rev 2 set;
+  - home "Recent work" leads with the three full-room shots;
+  - Our Work (393 photos): full clean rooms first, then adverts/logos, then job photos; album duplicates left out;
+  - the 13 screenshots of customer text messages / Messenger chats are deleted from the photo library;
+  - temporary import script removed again.
+- Tested: hostmaster@cleanbeansllc.com forwarding end-to-end from Proton (delivered to inbox, From email@cleanbeansllc.com).
+
 ## 1.1.1 — 2026-10-15 — Domain email forwarding in Settings
 
 - Admin > Settings > **Domain email**: "Forward all other @cleanbeansllc.com mail to" (owner and hostmaster;
