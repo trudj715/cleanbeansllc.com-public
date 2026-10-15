@@ -89,61 +89,22 @@ function inquiry_submit(string $kind, array $in): array
     if ($kind === 'service' && !in_array($svc, SERVICE_TYPES, true)) $svc = 'Other';
     if ($errors) return [false, $errors];
 
-    db_insert('inquiries', [
+    $optIn = !empty($in['sms_opt_in']) && $phone !== '' ? 1 : 0;
+    $now = now();
+    $newId = db_insert('inquiries', [
         'kind' => $kind, 'name' => $name, 'phone' => $phone, 'email' => $email,
         'location' => $loc, 'service_type' => $kind === 'service' ? $svc : '', 'message' => $msg,
         'status' => 'new', 'admin_notes' => '', 'ip' => client_ip(),
         'user_agent' => substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
-        'created_at' => now(), 'updated_at' => now(),
+        'sms_opt_in' => $optIn, 'sms_opted_out' => 0, 'reply_token' => bin2hex(random_bytes(6)),
+        'created_at' => $now, 'updated_at' => $now, 'last_activity_at' => $now,
     ]);
-    $newId = (int)db()->lastInsertId();
-    inquiry_notify($newId, $name, $phone, $email, $loc, $kind === 'service' ? $svc : '', $msg);
-    return [true, []];
-}
-
-/**
- * Optional email alert. Sends only when an alert address is set in Settings.
- *
- * Sent from the "Send alerts from" address (default hostmaster@cleanbeansllc.com), which is also
- * passed as the envelope sender (-f) so SPF and DKIM line up with cleanbeansllc.com for DMARC.
- * Returns true when the server accepted the message for delivery.
- */
-function inquiry_notify(int $id, string $name, string $phone, string $email, string $loc, string $svc, string $msg): bool
-{
-    $to = setting('notify_email');
-    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
-    $from = setting('notify_from', 'hostmaster@cleanbeansllc.com');
-    if (!filter_var($from, FILTER_VALIDATE_EMAIL)) $from = 'hostmaster@cleanbeansllc.com';
-
-    $oneLine = fn(string $s): string => trim(preg_replace('/[\r\n\t]+/', ' ', $s));
-    $subject = 'New website quote request: ' . $oneLine($name) . ($svc !== '' ? ' (' . $svc . ')' : '');
-
-    $lines = ['A new quote request came in on the Clean Beans website.', ''];
-    $lines[] = 'Name:     ' . $oneLine($name);
-    if ($phone !== '') $lines[] = 'Phone:    ' . $oneLine($phone);
-    if ($email !== '') $lines[] = 'Email:    ' . $oneLine($email);
-    if ($svc !== '')   $lines[] = 'Needs:    ' . $svc;
-    if ($loc !== '')   $lines[] = 'Location: ' . $oneLine($loc);
-    $lines[] = '';
-    $lines[] = $msg !== '' ? $msg : '(no message)';
-    $lines[] = '';
-    $lines[] = 'Open this message in the admin inbox:';
-    $lines[] = abs_url('admin/inbox/' . $id);
-    $lines[] = '';
-    $lines[] = '-- Sent automatically by the cleanbeansllc.com website. '
-             . ($email !== '' ? 'Reply to this email to answer the customer.' : 'The customer did not leave an email address, so call them.');
-
-    $headers = 'From: "Clean Beans Website" <' . $from . ">\r\n"
-             . ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) ? 'Reply-To: ' . $email . "\r\n" : '')
-             . "MIME-Version: 1.0\r\n"
-             . "Content-Type: text/plain; charset=UTF-8\r\n"
-             . "Content-Transfer-Encoding: 8bit\r\n"
-             . 'X-CB-Inquiry: ' . $id . "\r\n";
-    $ok = mail($to, mb_encode_mimeheader($subject, 'UTF-8', 'Q'), implode("\n", $lines) . "\n", $headers, '-f' . $from);
-    if (!$ok) {
-        err_log('mail', "Alert for inquiry #$id to $to was not accepted by the server's mail program.\n");
+    thread_add($newId, 'in', 'web', $msg, null, ['author' => $name, 'addr' => $email ?: $phone, 'status' => 'received']);
+    if ($optIn) {
+        thread_add($newId, 'system', 'sms', 'Customer agreed to text messages on the quote form (' . date('M j, Y g:ia') . ', IP ' . client_ip() . ').');
     }
-    return $ok;
+    inquiry_alert($newId, 'new');
+    return [true, []];
 }
 
 /* ---------- Icons (used when a service page has no banner photo yet) ---------- */

@@ -305,27 +305,57 @@ function admin_files_array(?array $field): array
 
 function admin_inbox(?int $id, string $method): void
 {
-    require_perm(PERM_INBOX);
+    $me = require_perm(PERM_INBOX);
     if ($id !== null) {
         $q = db_one('SELECT i.* FROM inquiries i WHERE i.id=?', [$id]);
         if (!$q) redirect('admin/inbox');
         if ($method === 'POST') {
-            if (post('action') === 'delete') {
+            $action = post('action');
+            $by = ['user_id' => (int)$me['id'], 'name' => $me['name'] ?: $me['email']];
+            if ($action === 'delete') {
+                db_exec('DELETE FROM messages WHERE inquiry_id=?', [$id]);
                 db_exec('DELETE FROM inquiries WHERE id=?', [$id]);
-                flash('Message deleted.');
+                flash('Conversation deleted.');
                 redirect('admin/inbox');
             }
+            if ($action === 'reply') {
+                $channel = post('channel');
+                $text = mb_substr(post('text'), 0, 8000);
+                if ($channel === 'note') {
+                    if (trim($text) !== '') thread_add($id, 'note', 'admin', trim($text), (int)$me['id'], ['author' => $by['name']]);
+                    flash('Note saved.');
+                } else {
+                    [$ok, $err] = inquiry_reply($q, $channel === 'sms' ? 'sms' : 'email', $text, $by);
+                    flash($ok ? ($channel === 'sms' ? 'Text sent.' : 'Email sent.') : $err, $ok ? 'ok' : 'error');
+                    if (!$ok) $_SESSION['reply_draft'] = $text;
+                }
+                redirect('admin/inbox/' . $id . '#reply');
+            }
             $st = in_array(post('status'), ['new', 'contacted', 'closed'], true) ? post('status') : $q['status'];
-            db_update('inquiries', $id, ['status' => $st, 'admin_notes' => mb_substr(post('admin_notes'), 0, 4000), 'updated_at' => now()]);
+            $row = ['status' => $st, 'admin_notes' => mb_substr(post('admin_notes'), 0, 4000), 'updated_at' => now()];
+            if (isset($_POST['sms_opt_in_record'])) {   // staff record consent given by phone / in person
+                $row['sms_opt_in'] = 1;
+                thread_add($id, 'system', 'sms', 'Text consent recorded by ' . $by['name'] . ' (customer agreed by phone or in person).', (int)$me['id']);
+            }
+            if ($st !== $q['status']) thread_add($id, 'system', 'admin', 'Status changed to ' . $st . ' by ' . $by['name'] . '.', (int)$me['id']);
+            db_update('inquiries', $id, $row);
             flash('Saved.');
             redirect('admin/inbox/' . $id);
         }
-        admin_render('Message', fn() => view('admin/inbox_view', ['q' => $q]));
+        $draft = $_SESSION['reply_draft'] ?? '';
+        unset($_SESSION['reply_draft']);
+        admin_render('Conversation', fn() => view('admin/inbox_view', ['q' => $q, 'thread' => thread_messages($id), 'draft' => $draft,
+            'canText' => inquiry_can_text($q), 'smsOn' => sms_enabled()]));
         return;
     }
     $status = (string)($_GET['status'] ?? 'open');
     $where = match ($status) { 'new' => "i.status='new'", 'contacted' => "i.status='contacted'", 'closed' => "i.status='closed'", 'all' => '1=1', default => "i.status<>'closed'" };
-    $rows = db_all("SELECT i.* FROM inquiries i WHERE $where ORDER BY i.id DESC LIMIT 300");
+    $rows = db_all("SELECT i.*,
+        (SELECT COUNT(*) FROM messages m WHERE m.inquiry_id=i.id AND m.direction IN ('in','out')) AS msg_count,
+        (SELECT m.author FROM messages m WHERE m.inquiry_id=i.id AND m.direction='out' ORDER BY m.id DESC LIMIT 1) AS last_reply_by,
+        (SELECT m.direction FROM messages m WHERE m.inquiry_id=i.id AND m.direction IN ('in','out') ORDER BY m.id DESC LIMIT 1) AS last_dir,
+        (SELECT m.channel FROM messages m WHERE m.inquiry_id=i.id AND m.direction IN ('in','out') ORDER BY m.id DESC LIMIT 1) AS last_channel
+        FROM inquiries i WHERE $where ORDER BY COALESCE(i.last_activity_at, i.created_at) DESC LIMIT 300");
     admin_render('Inbox', fn() => view('admin/inbox', ['rows' => $rows, 'status' => $status]));
 }
 
@@ -355,6 +385,11 @@ function admin_users(?int $id, string $sub, string $method): void
         }
         if ($action === 'update') {
             $row = ['name' => post('name')];
+            $ph = trim(post('phone'));
+            if ($ph !== '' && sms_e164($ph) === '') { flash('Check the mobile number (10 digits).', 'error'); redirect('admin/users'); }
+            $row += ['phone' => $ph === '' ? '' : sms_pretty(sms_e164($ph)), 'notify_email' => isset($_POST['notify_email']) ? 1 : 0,
+                     'notify_sms' => isset($_POST['notify_sms']) && $ph !== '' ? 1 : 0, 'sms_style' => post('sms_style') === 'link' ? 'link' : 'details',
+                     'sms_relay' => isset($_POST['sms_relay']) && $ph !== '' ? 1 : 0];
             if ((int)$target['is_protected'] !== 1) {
                 $row['permissions'] = admin_perms_from_post($me);
                 $row['is_enabled'] = (int)$target['id'] === (int)$me['id'] ? 1 : (isset($_POST['is_enabled']) ? 1 : 0);
@@ -404,7 +439,15 @@ const SETTINGS_FIELDS = [
         'address_line1' => 'Street address', 'address_line2' => 'City, state ZIP line', 'city' => 'City (for search engines)',
         'state' => 'State', 'zip' => 'ZIP', 'service_area_summary' => 'Service area summary (footer)',
     ],
-    'Notifications' => ['notify_email' => 'Email new inquiries to (leave blank for inbox only)', 'notify_from' => 'Send alerts from (a cleanbeansllc.com address)'],
+    'Notifications' => [
+        'notify_name' => 'Primary recipient name (shown in conversations)',
+        'notify_email' => 'Email new inquiries and replies to (blank = no email alert)',
+        'notify_sms_phone' => 'Text alerts to this mobile number (blank = no text alert)',
+        'notify_sms_style' => 'Text alerts contain',
+        'notify_sms_relay' => 'Customer texts go to this phone, and replying answers the customer',
+        'alert_reply_mode' => 'When you reply to an alert email',
+        'notify_from' => 'Send alerts from (a cleanbeansllc.com address)',
+    ],
     'Domain email (mail sent to @cleanbeansllc.com addresses)' => [
         'mail_fwd_catchall' => 'Forward all other @cleanbeansllc.com mail (info@, becky@ …) to. One or more addresses, comma-separated. Blank = send to the hostmaster destination',
     ],
@@ -413,19 +456,48 @@ const SETTINGS_FIELDS = [
         'social_tiktok' => 'TikTok', 'social_twitter' => 'X / Twitter', 'social_linkedin' => 'LinkedIn', 'social_pinterest' => 'Pinterest', 'social_snapchat' => 'Snapchat',
     ],
 ];
-const SETTINGS_DEFAULTS = ['notify_from' => 'hostmaster@cleanbeansllc.com', 'mail_fwd_catchall' => 'owner@example.com', 'mail_fwd_hostmaster' => 'hostmaster@trudj.net'];
+const SETTINGS_DEFAULTS = ['notify_name' => 'Becky', 'notify_sms_style' => 'details', 'notify_sms_relay' => '1', 'alert_reply_mode' => 'thread',
+    'sms_enabled' => '0', 'sms_provider' => 'log', 'notify_from' => 'hostmaster@cleanbeansllc.com', 'mail_fwd_catchall' => 'owner@example.com', 'mail_fwd_hostmaster' => 'hostmaster@trudj.net'];
+const SETTINGS_SMS = [
+    'sms_enabled' => 'Text messages', 'sms_provider' => 'Provider', 'sms_from' => 'Business texting number (the number customers text)',
+    'sms_twilio_sid' => 'Twilio Account SID', 'sms_twilio_token' => 'Twilio Auth Token',
+    'sms_telnyx_key' => 'Telnyx API key', 'sms_telnyx_public_key' => 'Telnyx public key (webhook signing)', 'sms_telnyx_profile' => 'Telnyx messaging profile ID (optional)',
+];
+const SETTINGS_SECRETS = ['sms_twilio_token', 'sms_telnyx_key'];
+const SETTINGS_CHOICES = [
+    'notify_sms_style' => ['details' => 'Full details and a link to the admin', 'link' => 'Just a link to the admin'],
+    'notify_sms_relay' => ['1' => 'Yes', '0' => 'No'],
+    'alert_reply_mode' => ['thread' => 'Reply goes to the customer from Clean Beans and is saved in the conversation', 'direct' => 'Reply goes straight to the customer (not saved)'],
+    'sms_enabled' => ['0' => 'Off', '1' => 'On'],
+    'sms_provider' => SMS_PROVIDERS,
+];
 const SETTINGS_HOSTMASTER = ['mail_fwd_hostmaster' => 'Forward hostmaster@cleanbeansllc.com to (comma-separated)', 'allow_indexing' => 'Let search engines index the site (1 = yes; leave 0 while staging)', 'show_credits' => 'Show St Croix Tech / TRUDJ.net credits (1 = yes)'];
 
 function admin_settings(string $method): void
 {
     $me = require_perm(PERM_SETTINGS);
     $fields = SETTINGS_FIELDS;
-    if (is_hostmaster($me)) $fields['Hostmaster only'] = SETTINGS_HOSTMASTER;
+    if (is_hostmaster($me)) {
+        $fields['Text messages (hostmaster only)'] = SETTINGS_SMS;
+        $fields['Hostmaster only'] = SETTINGS_HOSTMASTER;
+    }
+    if ($method === 'POST' && post('action') === 'test_sms' && is_hostmaster($me)) {
+        $to = trim(post('test_to'));
+        $res = sms_e164($to) === '' ? ['ok' => false, 'error' => 'enter a mobile number'] : sms_send($to, setting('brand_name', 'Clean Beans') . ' website: test text. Reply to this number to test replies.');
+        flash($res['ok'] ? 'Test text sent to ' . $to . '.' : 'Test text not sent: ' . $res['error'], $res['ok'] ? 'ok' : 'error');
+        redirect('admin/settings#sms');
+    }
     if ($method === 'POST') {
         foreach ($fields as $group) {
             foreach ($group as $key => $label) {
                 if (!array_key_exists($key, $_POST)) continue;
                 $v = mb_substr(trim((string)$_POST[$key]), 0, 1000);
+                if (in_array($key, SETTINGS_SECRETS, true) && $v === '') continue;   // blank = keep the saved secret
+                if (isset(SETTINGS_CHOICES[$key]) && !array_key_exists($v, SETTINGS_CHOICES[$key])) continue;
+                if (in_array($key, ['notify_sms_phone', 'sms_from'], true) && $v !== '') {
+                    if (sms_e164($v) === '') { flash($label . ': check the number (10 digits, or +country code).', 'error'); continue; }
+                    $v = $key === 'sms_from' ? sms_e164($v) : sms_pretty(sms_e164($v));
+                }
                 if (str_starts_with($key, 'social_') && $v !== '' && !preg_match('#^https://#', $v)) {
                     flash($label . ' link must start with https:// - not saved.', 'error');
                     continue;
@@ -447,7 +519,7 @@ function admin_settings(string $method): void
         flash('Settings saved.');
         redirect('admin/settings');
     }
-    admin_render('Settings', fn() => view('admin/settings', ['fields' => $fields]));
+    admin_render('Settings', fn() => view('admin/settings', ['fields' => $fields, 'hostmaster' => is_hostmaster($me)]));
 }
 
 /* ======================= My account (password + two-step sign-in) ======================= */

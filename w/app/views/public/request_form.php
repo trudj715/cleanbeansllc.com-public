@@ -45,6 +45,8 @@ $chosen = $old['service_type'] ?? $pageService;
           <input type="text" name="location" placeholder="Where the cleaning is" value="<?= e($old['location'] ?? '') ?>"></label>
         <label class="field full"><span>Details</span>
           <textarea name="message" rows="4" placeholder="Size of the space, condition, preferred dates, anything we should know"><?= e($old['message'] ?? '') ?></textarea></label>
+        <label class="field full check-field"><input type="checkbox" name="sms_opt_in" value="1"<?= !empty($old['sms_opt_in']) ? ' checked' : '' ?>>
+          <span>Text me about this request. <span class="muted">By checking this box you agree to receive text messages from <?= e(setting('company_name', 'Clean Beans LLC')) ?> about your quote and jobs. Msg frequency varies. Msg &amp; data rates may apply. Reply HELP for help, STOP to opt out. Consent is not required to get a quote. <a href="<?= e(url('sms-terms')) ?>" target="_blank">Text terms</a> · <a href="<?= e(url('privacy')) ?>" target="_blank">Privacy</a></span></span></label>
       </div>
       <div class="form-foot"><button class="btn btn-call" type="submit">Send request</button><span class="muted">Free quote, no obligation.</span></div>
     </form>

@@ -10,6 +10,7 @@ function public_route(string $path, string $method): void
     if ($path === 'robots.txt')  { robots(); return; }
 
     if ($path === 'request' && $method === 'POST') { service_request_post(); return; }
+    if (preg_match('#^sms/inbound/([a-f0-9]{32})$#', $path, $m)) { sms_webhook($m[1], $method); return; }
 
     // /home and /index.php go to the home page.
     if ($path === 'home' || $path === 'index.php') redirect('', 301);
@@ -52,7 +53,7 @@ function service_request_post(): void
         redirect(abs_url($back) . '?sent=1#request');
     }
     $_SESSION['form_errors'] = $errors;
-    $_SESSION['form_old'] = array_intersect_key($_POST, array_flip(['name', 'phone', 'email', 'location', 'service_type', 'message']));
+    $_SESSION['form_old'] = array_intersect_key($_POST, array_flip(['name', 'phone', 'email', 'location', 'service_type', 'message', 'sms_opt_in']));
     redirect(abs_url($back) . '#request');
 }
 
@@ -81,4 +82,29 @@ function robots(): void
         return;
     }
     echo "User-agent: *\nDisallow: " . url('admin') . "\nSitemap: " . abs_url('sitemap.xml') . "\n";
+}
+
+
+/** Inbound text webhook (Twilio / Telnyx). URL secret + provider signature are both required. */
+function sms_webhook(string $key, string $method): void
+{
+    header('Cache-Control: no-store');
+    header('X-Robots-Tag: noindex');
+    if ($method !== 'POST' || !hash_equals(sms_webhook_key(), $key)) { http_response_code(404); exit; }
+    $raw = (string)file_get_contents('php://input');
+    if (!sms_webhook_verified($raw)) {
+        sms_log('REJECTED inbound webhook: bad or missing provider signature from ' . client_ip());
+        http_response_code(403);
+        exit;
+    }
+    $in = sms_parse_inbound($raw);
+    if ($in) {
+        try {
+            sms_inbound($in);
+        } catch (Throwable $e) {
+            sms_log('ERROR handling inbound text: ' . $e->getMessage());
+        }
+    }
+    sms_webhook_respond();
+    exit;
 }

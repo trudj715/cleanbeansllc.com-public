@@ -110,7 +110,7 @@ if ($social) $business['sameAs'] = array_values(array_map(fn($s) => $s[0], $soci
     </div>
   </div>
   <div class="wrap footer-bottom">
-    <div>&copy; <?= date('Y') ?> <?= e($company) ?>. All rights reserved.</div>
+    <div>&copy; <?= date('Y') ?> <?= e($company) ?>. All rights reserved. <a href="<?= e(url('privacy')) ?>">Privacy</a> · <a href="<?= e(url('sms-terms')) ?>">Text message terms</a></div>
     <?php if (setting('show_credits', '1') === '1'): ?>
     <div class="credits">
       <span>Website by</span>

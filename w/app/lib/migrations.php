@@ -6,7 +6,7 @@
  */
 declare(strict_types=1);
 
-const CONTENT_REV = 3;
+const CONTENT_REV = 4;
 
 function run_content_migrations(): void
 {
@@ -29,6 +29,10 @@ function run_content_migrations(): void
         if ((int)setting('content_rev', '1') < 3) {
             migration_3_featured_photos();
             setting_save('content_rev', '3');
+        }
+        if ((int)setting('content_rev', '1') < 4) {
+            migration_4_conversations();
+            setting_save('content_rev', '4');
         }
     } catch (Throwable $e) {
         error_log('Content migration failed: ' . $e->getMessage());
@@ -202,6 +206,94 @@ function migration_3_featured_photos(): void
                 media_delete((int)$mid);
             }
         }
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
+    }
+}
+
+/** True if $table has $column (works on MySQL and SQLite). */
+function db_has_column(string $table, string $column): bool
+{
+    try {
+        db()->query("SELECT $column FROM $table LIMIT 1");
+        return true;
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+/**
+ * Rev 4 (v1.3.0): conversations, per-user alerts, texts.
+ * - table messages (the thread for each inquiry)
+ * - users: phone, notify_email, notify_sms, sms_style, sms_relay
+ * - inquiries: reply_token, sms_opt_in, sms_opted_out, last_activity_at
+ * - existing inquiries get their original message as the first line of the thread
+ * - Privacy Policy and Text Message Terms pages (needed for carrier SMS registration)
+ */
+function migration_4_conversations(): void
+{
+    $mysql = !defined('DB_DSN');
+    $pk = $mysql ? 'INT AUTO_INCREMENT PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';
+    $tail = $mysql ? ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci' : '';
+    if (!db_has_column('messages', 'id')) {
+        db()->exec("CREATE TABLE messages (
+            id $pk,
+            inquiry_id INT NOT NULL,
+            direction VARCHAR(10) NOT NULL,
+            channel VARCHAR(10) NOT NULL,
+            user_id INT NULL,
+            author VARCHAR(120) NOT NULL DEFAULT '',
+            body TEXT NULL,
+            addr VARCHAR(190) NOT NULL DEFAULT '',
+            status VARCHAR(20) NOT NULL DEFAULT '',
+            provider_id VARCHAR(80) NOT NULL DEFAULT '',
+            created_at DATETIME NOT NULL
+        )$tail");
+        db()->exec('CREATE INDEX ix_messages_inquiry ON messages (inquiry_id, id)');
+    }
+    $cols = [
+        ['users', 'phone', "VARCHAR(40) NOT NULL DEFAULT ''"],
+        ['users', 'notify_email', 'TINYINT NOT NULL DEFAULT 0'],
+        ['users', 'notify_sms', 'TINYINT NOT NULL DEFAULT 0'],
+        ['users', 'sms_style', "VARCHAR(10) NOT NULL DEFAULT 'details'"],
+        ['users', 'sms_relay', 'TINYINT NOT NULL DEFAULT 0'],
+        ['inquiries', 'reply_token', "VARCHAR(16) NOT NULL DEFAULT ''"],
+        ['inquiries', 'sms_opt_in', 'TINYINT NOT NULL DEFAULT 0'],
+        ['inquiries', 'sms_opted_out', 'TINYINT NOT NULL DEFAULT 0'],
+        ['inquiries', 'last_activity_at', 'DATETIME NULL'],
+    ];
+    foreach ($cols as [$t, $c, $def]) {
+        if (!db_has_column($t, $c)) db()->exec("ALTER TABLE $t ADD COLUMN $c $def");
+    }
+
+    db()->beginTransaction();
+    try {
+        // Seed each existing inquiry's thread with its original message
+        foreach (db_all('SELECT i.* FROM inquiries i WHERE NOT EXISTS (SELECT 1 FROM messages m WHERE m.inquiry_id=i.id)') as $q) {
+            db_insert('messages', ['inquiry_id' => $q['id'], 'direction' => 'in', 'channel' => 'web', 'user_id' => null, 'author' => $q['name'],
+                'body' => (string)$q['message'], 'addr' => $q['email'] ?: $q['phone'], 'status' => 'received', 'provider_id' => '', 'created_at' => $q['created_at']]);
+            db_exec('UPDATE inquiries SET last_activity_at=? WHERE id=?', [$q['updated_at'] ?: $q['created_at'], $q['id']]);
+        }
+        // Legal pages (not in the menu; linked from the footer and the quote form)
+        $now = now();
+        $legal = require APP_DIR . '/content/legal-pages.php';
+        foreach ($legal as $slug => $pg) {
+            if (db_val('SELECT id FROM pages WHERE slug=?', [$slug])) continue;
+            $pid = db_insert('pages', ['slug' => $slug, 'title' => $pg['title'], 'nav_label' => $pg['title'], 'show_in_nav' => 0, 'nav_order' => 200,
+                'is_published' => 1, 'hero_media_id' => null, 'hero_heading' => $pg['title'], 'hero_text' => $pg['intro'],
+                'meta_title' => $pg['title'] . ' | ' . setting('company_name', 'Clean Beans LLC'), 'meta_description' => $pg['intro'],
+                'created_at' => $now, 'updated_at' => $now]);
+            db_insert('sections', ['page_id' => $pid, 'type' => 'text', 'heading' => '', 'body_html' => $pg['body'], 'media_id' => null,
+                'data' => '[]', 'sort_order' => 10, 'is_enabled' => 1, 'created_at' => $now, 'updated_at' => $now]);
+        }
+        // Defaults: alerts reply through the site; text alerts to the primary phone relay customer texts
+        if (setting('alert_reply_mode') === '') setting_save('alert_reply_mode', 'thread');
+        if (setting('notify_sms_style') === '') setting_save('notify_sms_style', 'details');
+        if (setting('notify_sms_relay') === '') setting_save('notify_sms_relay', '1');
+        if (setting('sms_provider') === '') setting_save('sms_provider', 'log');
+        if (setting('sms_enabled') === '') setting_save('sms_enabled', '0');
         db()->commit();
     } catch (Throwable $e) {
         db()->rollBack();

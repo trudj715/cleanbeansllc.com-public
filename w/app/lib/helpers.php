@@ -60,9 +60,15 @@ function money(?int $cents): string
 
 /* ---------- Settings (key/value table, cached per request) ---------- */
 
-function settings_all(): array
+function &settings_cache(): ?array
 {
     static $cache = null;
+    return $cache;
+}
+
+function settings_all(): array
+{
+    $cache = &settings_cache();
     if ($cache === null) {
         $cache = [];
         foreach (db_all('SELECT skey, svalue FROM settings') as $r) {
@@ -85,6 +91,8 @@ function setting_save(string $key, string $value): void
     } else {
         db_exec('INSERT INTO settings (skey, svalue) VALUES (?,?)', [$key, $value]);
     }
+    $cache = &settings_cache();
+    if ($cache !== null) $cache[$key] = $value;   // later reads in this request see the new value
 }
 
 /* ---------- Session, CSRF, flash ---------- */

@@ -134,3 +134,16 @@ dialog.picker::backdrop { background: rgba(10, 20, 40, .6); }
 #qr { background: #fff; padding: 10px; display: inline-block; border: 1px solid var(--line); }
 .login-card { background: #fff; border-top: 6px solid var(--navy); border-radius: var(--r); padding: 26px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
 .login-card img { height: 72px; width: auto; display: block; margin: 0 auto 10px; }
+
+/* Conversations */
+.convo-grid { grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); }
+@media (max-width: 900px) { .convo-grid { grid-template-columns: 1fr; } }
+.thread { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.msg { max-width: 86%; padding: 10px 14px; border-radius: 12px; background: #fff; border: 1px solid #dfe5e1; }
+.msg.in { align-self: flex-start; background: #fff; }
+.msg.out { align-self: flex-end; background: #e6f4ea; border-color: #bfe0c9; }
+.msg.note { align-self: center; background: #fff8e1; border-color: #f0dc9a; max-width: 92%; }
+.msg.sys { align-self: center; background: none; border: 0; padding: 0; color: #66706a; font-size: .82rem; text-align: center; }
+.msg-meta { font-size: .8rem; color: #5b655f; margin-bottom: 4px; }
+.msg-body { white-space: normal; overflow-wrap: anywhere; line-height: 1.45; }
+.reply-box textarea { width: 100%; }

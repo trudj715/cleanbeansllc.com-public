@@ -1,5 +1,18 @@
 # Clean Beans LLC website — Changelog
 
+## 1.3.0 — 2026-10-15 — Conversations, email + text alerts, two-way texting
+
+- Inquiries are now conversations (new `messages` table): form message, emails and texts both ways, internal notes,
+  status changes and alerts, each with who sent it. Inbox list shows last activity, "Waiting for reply" and who answered.
+- Alerts by email, text or both: primary recipient in Settings → Notifications, plus per-user *Email me* / *Text me*,
+  phone and text style (full details + link, or link only) in Admin → Users.
+- Replies from admin by email or text. Staff can reply straight from their mailbox (Reply-To `reply-<token>@`) or phone
+  (business-number relay; `?` lists threads, `#12 …` picks one). Customer email replies and texts land in the conversation.
+- Provider-neutral texting (`app/lib/sms.php`): Twilio or Telnyx, chosen in Settings → Text messaging (hostmaster);
+  signed inbound webhook `sms/inbound/<key>`; STOP/START/HELP; `log` provider for testing. **Off until A2P 10DLC registration and keys.**
+- Quote form: optional "OK to text me" consent box. New footer pages Privacy Policy and Text Message Terms (content rev 4).
+- Fix: settings saved during a request are visible to the rest of that request.
+
 ## 1.2.0 — 2026-10-15 — Featured photos lead the site
 
 - Imported the Facebook **Cover photos** (13) and **Profile pictures** (9) albums: full clean-room shots
@@ -71,6 +84,9 @@ Built from the kmtow.com 3.0.0 platform (custom PHP/MySQL site + owner admin).
 - Parts & equipment catalog: listings, categories, vehicle fitments, listing photos, parts inquiries, their admin screens,
   database tables, settings and styles.
 
+### Email
+- Mail forwarder (`mail/`) rebranded: hostmaster@ → hostmaster@trudj.net; catch-all → the owner,
+  re-sent from "Clean Beans Domain Email Message" <email@cleanbeansllc.com>.
 
 ### Verified (local, SQLite)
 - All 9 pages 200, unknown paths and old /parts URLs 404, sitemap 9 URLs, robots blocks while staging.

@@ -231,3 +231,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--ink); outline: 3
   .callbar a { flex: 1; text-align: center; padding: 14px; font: 800 1.3rem var(--head-font); color: #07140b; text-decoration: none; }
   body { padding-bottom: 58px; }
 }
+
+/* Quote form: text-message opt-in */
+label.field.check-field { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; }
+label.field.check-field input { width: 20px; height: 20px; margin-top: 3px; flex: none; accent-color: var(--green-dark, #1f7a3d); }
+label.field.check-field > span { font-weight: 600; margin: 0; }
+label.field.check-field .muted { display: block; font-weight: 400; font-size: .85rem; line-height: 1.45; margin-top: 3px; }
+.footer-bottom a { color: inherit; }

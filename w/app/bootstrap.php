@@ -10,7 +10,7 @@ declare(strict_types=1);
 define('APP_ROOT', dirname(__DIR__));          // .../w
 define('APP_DIR', __DIR__);                    // .../w/app
 define('APP_NAME', 'Clean Beans Website');
-define('APP_VERSION', '1.2.0');   // 1.2.0 = featured Facebook photos lead the site, text screenshots removed; 1.1.1 = Domain email forwarding set in admin Settings; 1.1.0 = job photos from Facebook, Our Work gallery; 1.0.1 = Clean Beans logo from the patch; 1.0.0 = first build (staged at /w/), from the kmtow.com 3.0.0 platform
+define('APP_VERSION', '1.3.0');   // 1.3.0 = conversations, per-user email/text alerts, two-way texting; 1.2.0 = featured Facebook photos lead the site, text screenshots removed; 1.1.1 = Domain email forwarding set in admin Settings; 1.1.0 = job photos from Facebook, Our Work gallery; 1.0.1 = Clean Beans logo from the patch; 1.0.0 = first build (staged at /w/), from the kmtow.com 3.0.0 platform
 define('APP_BUILDER', 'St Croix Tech Services / TRUDJ.net');
 define('HOSTMASTER_EMAIL', 'hostmaster@trudj.net');
 
@@ -36,6 +36,9 @@ require APP_DIR . '/lib/auth.php';
 require APP_DIR . '/lib/totp.php';
 require APP_DIR . '/lib/media.php';
 require APP_DIR . '/lib/content.php';
+require APP_DIR . '/lib/sms.php';
+require APP_DIR . '/lib/threads.php';
+require APP_DIR . '/lib/mailin.php';
 require APP_DIR . '/lib/migrations.php';
 
 start_session();

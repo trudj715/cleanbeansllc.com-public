@@ -18,7 +18,16 @@ $permBoxes = function (int $current, bool $disabled = false) use ($me) {
   <?php else: ?>
   <form method="post" action="<?= e(url('admin/users/' . $u['id'])) ?>">
     <?= csrf_field() ?><input type="hidden" name="action" value="update">
-    <label class="f" style="max-width:360px"><span>Name</span><input type="text" name="name" value="<?= e($u['name']) ?>"></label>
+    <div class="grid3">
+      <label class="f"><span>Name</span><input type="text" name="name" value="<?= e($u['name']) ?>"></label>
+      <label class="f"><span>Mobile number (for text alerts)</span><input type="tel" name="phone" value="<?= e((string)($u['phone'] ?? '')) ?>" placeholder="(715) 555-0123"></label>
+      <label class="f"><span>Text alerts contain</span><select name="sms_style"><option value="details"<?= ($u['sms_style'] ?? '') !== 'link' ? ' selected' : '' ?>>Details and a link</option><option value="link"<?= ($u['sms_style'] ?? '') === 'link' ? ' selected' : '' ?>>Just a link</option></select></label>
+    </div>
+    <div><strong>Alert me about new inquiries and customer replies:</strong><br>
+      <label class="check" style="display:inline-flex;margin-right:12px"><input type="checkbox" name="notify_email" <?= !empty($u['notify_email']) ? 'checked' : '' ?>> by email (<?= e($u['email']) ?>)</label>
+      <label class="check" style="display:inline-flex;margin-right:12px"><input type="checkbox" name="notify_sms" <?= !empty($u['notify_sms']) ? 'checked' : '' ?>> by text</label>
+      <label class="check" style="display:inline-flex"><input type="checkbox" name="sms_relay" <?= !empty($u['sms_relay']) ? 'checked' : '' ?>> send me customer texts, and let me answer by replying</label>
+    </div>
     <?php if (!$prot): ?>
       <div><strong>Can manage:</strong><br><?php $permBoxes((int)$u['permissions']); ?></div>
       <?php if (!$self): ?><label class="check"><input type="checkbox" name="is_enabled" <?= (int)$u['is_enabled'] ? 'checked' : '' ?>> Account enabled</label><?php endif; ?>
