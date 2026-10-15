@@ -1,0 +1,7 @@
+# cleanbeansllc.com document root
+# Until launch, visitors to the home page see the under-construction page at /uc/.
+# The website itself is staged at /w/ (reachable by direct link for testing and review).
+# 302 (temporary) on purpose: at launch this becomes a redirect to /w/, and a 301 would be cached by browsers.
+# Only the home page is redirected; /.well-known/ (SSL renewals), /uc/ and /w/ are untouched.
+Options -Indexes
+RedirectMatch 302 ^/(index\.html?)?$ /uc/

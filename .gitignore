@@ -1,0 +1,8 @@
+# Server-only files (never commit)
+w/app/config.php
+w/app/install.lock
+w/uploads/20[0-9][0-9]/
+w/err/*.log
+# Backups and packages
+*.zip
+*.sql.gz
