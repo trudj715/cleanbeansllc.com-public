@@ -413,7 +413,7 @@ const SETTINGS_FIELDS = [
         'social_tiktok' => 'TikTok', 'social_twitter' => 'X / Twitter', 'social_linkedin' => 'LinkedIn', 'social_pinterest' => 'Pinterest', 'social_snapchat' => 'Snapchat',
     ],
 ];
-const SETTINGS_DEFAULTS = ['notify_from' => 'hostmaster@cleanbeansllc.com', 'mail_fwd_catchall' => 'becky_tully@yahoo.com', 'mail_fwd_hostmaster' => 'hostmaster@trudj.net'];
+const SETTINGS_DEFAULTS = ['notify_from' => 'hostmaster@cleanbeansllc.com', 'mail_fwd_catchall' => 'owner@example.com', 'mail_fwd_hostmaster' => 'hostmaster@trudj.net'];
 const SETTINGS_HOSTMASTER = ['mail_fwd_hostmaster' => 'Forward hostmaster@cleanbeansllc.com to (comma-separated)', 'allow_indexing' => 'Let search engines index the site (1 = yes; leave 0 while staging)', 'show_credits' => 'Show St Croix Tech / TRUDJ.net credits (1 = yes)'];
 
 function admin_settings(string $method): void
