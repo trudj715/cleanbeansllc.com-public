@@ -18,15 +18,33 @@
   if (galleryButtons.length && typeof HTMLDialogElement === 'function') {
     var dlg = document.createElement('dialog');
     dlg.className = 'lightbox';
-    dlg.innerHTML = '<form method="dialog"><button type="submit">Close</button></form><img alt="">';
+    dlg.innerHTML = '<form method="dialog"><span class="lb-count" aria-live="polite"></span><button type="button" class="lb-prev" aria-label="Previous photo">&lsaquo;</button>'
+      + '<button type="button" class="lb-next" aria-label="Next photo">&rsaquo;</button><button type="submit">Close</button></form><img alt="">';
     document.body.appendChild(dlg);
-    var img = dlg.querySelector('img');
-    galleryButtons.forEach(function (b) {
-      b.addEventListener('click', function () {
-        img.src = b.getAttribute('data-full');
-        img.alt = b.getAttribute('data-alt') || '';
-        dlg.showModal();
-      });
+    var img = dlg.querySelector('img'), count = dlg.querySelector('.lb-count');
+    var list = Array.prototype.slice.call(galleryButtons), cur = 0;
+    function show(i) {
+      cur = (i + list.length) % list.length;
+      var b = list[cur];
+      img.src = b.getAttribute('data-full');
+      img.alt = b.getAttribute('data-alt') || '';
+      count.textContent = (cur + 1) + ' / ' + list.length;
+    }
+    list.forEach(function (b, i) {
+      b.addEventListener('click', function () { show(i); dlg.showModal(); });
+    });
+    dlg.querySelector('.lb-prev').addEventListener('click', function () { show(cur - 1); });
+    dlg.querySelector('.lb-next').addEventListener('click', function () { show(cur + 1); });
+    dlg.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { show(cur - 1); e.preventDefault(); }
+      if (e.key === 'ArrowRight') { show(cur + 1); e.preventDefault(); }
+    });
+    var touchX = null;
+    dlg.addEventListener('touchstart', function (e) { touchX = e.touches[0].clientX; }, { passive: true });
+    dlg.addEventListener('touchend', function (e) {
+      if (touchX === null) return;
+      var dx = e.changedTouches[0].clientX - touchX; touchX = null;
+      if (Math.abs(dx) > 50) show(cur + (dx < 0 ? 1 : -1));
     });
     dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
   }

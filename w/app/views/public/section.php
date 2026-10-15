@@ -49,7 +49,7 @@ case 'gallery':
 <section class="section<?= $band ? ' band' : '' ?>"><div class="wrap">
   <?php if ($heading !== ''): ?><h2><?= e($heading) ?></h2><?php endif; ?>
   <?php if ($body !== ''): ?><div class="prose"><?= $body ?></div><?php endif; ?>
-  <div class="gallery">
+  <div class="gallery<?= !empty($d['big']) ? ' gallery-big' : '' ?>">
     <?php foreach ($d['media_ids'] ?? [] as $mid): $m = $media[(int)$mid] ?? null; if (!$m) continue; ?>
       <button type="button" data-full="<?= e(media_url($m)) ?>" data-alt="<?= e($m['alt_text']) ?>" aria-label="Enlarge photo: <?= e($m['alt_text']) ?>">
         <?= media_img($m, '', '(max-width: 600px) 100vw, 33vw') ?>

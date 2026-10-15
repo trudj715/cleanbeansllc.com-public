@@ -51,7 +51,7 @@ function nav_items(): array
 function service_pages(): array
 {
     return db_all("SELECT p.*, m.file, m.file_sm, m.alt_text, m.width, m.height FROM pages p LEFT JOIN media m ON m.id=p.hero_media_id
-                   WHERE p.is_published=1 AND p.slug NOT IN ('home') AND p.show_in_nav=1 AND p.slug NOT IN ('service-area', 'about') ORDER BY p.nav_order, p.id");
+                   WHERE p.is_published=1 AND p.slug NOT IN ('home') AND p.show_in_nav=1 AND p.slug NOT IN ('service-area', 'about', 'our-work') ORDER BY p.nav_order, p.id");
 }
 
 /* ---------- Inquiries (public forms) ---------- */

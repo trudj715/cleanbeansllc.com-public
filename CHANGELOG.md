@@ -1,5 +1,21 @@
 # Clean Beans LLC website — Changelog
 
+## 1.1.0 — 2026-10-15 — Job photos from Facebook, Our Work gallery
+
+- 430 photos from the Clean Beans Facebook page imported into the photo library (category "facebook"),
+  resized to 1800px with 640px thumbnails and EXIF/GPS stripped by the normal upload code.
+- Applied automatically on the first page load after deploy (`app/lib/migrations.php`, content rev 2; plan in
+  `app/content/photos-2026-10.php`):
+  - service page banners from the best finished-job shots;
+  - home page "Recent work" gallery (9 photos) linking to the new page;
+  - "From recent jobs" before-and-after strip on five service pages (not on Hoarding/Biohazard);
+  - About page photo; written descriptions for the featured photos;
+  - new **Our Work** page (menu, between Specialty Cleans and Service Area) with 384 photos. Flyers, customer
+    text-message screenshots, photos of people, a car, a deer, near-blank and clog photos are left out (still in the library).
+  - deletes the temporary import script `fbimport.php` from the server.
+- Photo viewer: previous/next buttons, arrow keys, swipe on phones, "n / total" counter. Denser square grid on Our Work.
+- Under-construction page: Facebook, TikTok and footer credit links open in a new tab.
+
 ## 1.0.1 — 2026-10-14 — Clean Beans logo
 
 - New logo redrawn from Becky's embroidered patch and flyers: the sunglasses bean with the gritted-teeth grimace, raised
