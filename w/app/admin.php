@@ -405,12 +405,16 @@ const SETTINGS_FIELDS = [
         'state' => 'State', 'zip' => 'ZIP', 'service_area_summary' => 'Service area summary (footer)',
     ],
     'Notifications' => ['notify_email' => 'Email new inquiries to (leave blank for inbox only)', 'notify_from' => 'Send alerts from (a cleanbeansllc.com address)'],
+    'Domain email (mail sent to @cleanbeansllc.com addresses)' => [
+        'mail_fwd_catchall' => 'Forward all other @cleanbeansllc.com mail (info@, becky@ …) to. One or more addresses, comma-separated. Blank = send to the hostmaster destination',
+    ],
     'Social links (full https:// address, blank to hide)' => [
         'social_facebook' => 'Facebook', 'social_instagram' => 'Instagram', 'social_youtube' => 'YouTube', 'social_google' => 'Google Business',
         'social_tiktok' => 'TikTok', 'social_twitter' => 'X / Twitter', 'social_linkedin' => 'LinkedIn', 'social_pinterest' => 'Pinterest', 'social_snapchat' => 'Snapchat',
     ],
 ];
-const SETTINGS_HOSTMASTER = ['allow_indexing' => 'Let search engines index the site (1 = yes; leave 0 while staging)', 'show_credits' => 'Show St Croix Tech / TRUDJ.net credits (1 = yes)'];
+const SETTINGS_DEFAULTS = ['notify_from' => 'hostmaster@cleanbeansllc.com', 'mail_fwd_catchall' => 'becky_tully@yahoo.com', 'mail_fwd_hostmaster' => 'hostmaster@trudj.net'];
+const SETTINGS_HOSTMASTER = ['mail_fwd_hostmaster' => 'Forward hostmaster@cleanbeansllc.com to (comma-separated)', 'allow_indexing' => 'Let search engines index the site (1 = yes; leave 0 while staging)', 'show_credits' => 'Show St Croix Tech / TRUDJ.net credits (1 = yes)'];
 
 function admin_settings(string $method): void
 {
@@ -425,6 +429,13 @@ function admin_settings(string $method): void
                 if (str_starts_with($key, 'social_') && $v !== '' && !preg_match('#^https://#', $v)) {
                     flash($label . ' link must start with https:// - not saved.', 'error');
                     continue;
+                }
+                if (str_starts_with($key, 'mail_fwd_') && $v !== '') {
+                    $list = array_map('trim', explode(',', $v));
+                    $bad = array_filter($list, fn($a) => !filter_var($a, FILTER_VALIDATE_EMAIL));
+                    if ($bad) { flash($label . ': not a valid email address (' . e(implode(', ', $bad)) . ') - not saved.', 'error'); continue; }
+                    if (array_filter($list, fn($a) => str_ends_with(strtolower($a), '@cleanbeansllc.com'))) { flash('Domain email: forward to an outside address, not an @cleanbeansllc.com one (that would loop) - not saved.', 'error'); continue; }
+                    $v = implode(', ', $list);
                 }
                 if (in_array($key, ['contact_email', 'notify_email', 'notify_from'], true) && $v !== '' && !filter_var($v, FILTER_VALIDATE_EMAIL)) {
                     flash($label . ': not a valid email address - not saved.', 'error');

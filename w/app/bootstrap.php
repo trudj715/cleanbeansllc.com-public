@@ -10,7 +10,7 @@ declare(strict_types=1);
 define('APP_ROOT', dirname(__DIR__));          // .../w
 define('APP_DIR', __DIR__);                    // .../w/app
 define('APP_NAME', 'Clean Beans Website');
-define('APP_VERSION', '1.1.0');   // 1.1.0 = job photos from Facebook, Our Work gallery; 1.0.1 = Clean Beans logo from the patch; 1.0.0 = first build (staged at /w/), from the kmtow.com 3.0.0 platform
+define('APP_VERSION', '1.1.1');   // 1.1.1 = Domain email forwarding set in admin Settings; 1.1.0 = job photos from Facebook, Our Work gallery; 1.0.1 = Clean Beans logo from the patch; 1.0.0 = first build (staged at /w/), from the kmtow.com 3.0.0 platform
 define('APP_BUILDER', 'St Croix Tech Services / TRUDJ.net');
 define('HOSTMASTER_EMAIL', 'hostmaster@trudj.net');
 

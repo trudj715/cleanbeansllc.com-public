@@ -1,5 +1,15 @@
 # Clean Beans LLC website — Changelog
 
+## 1.1.1 — 2026-10-15 — Domain email forwarding in Settings
+
+- Admin > Settings > **Domain email**: "Forward all other @cleanbeansllc.com mail to" (owner and hostmaster;
+  one or more addresses, comma-separated; blank = send to the hostmaster destination). Hostmaster-only:
+  "Forward hostmaster@cleanbeansllc.com to". @cleanbeansllc.com destinations are refused (they would loop).
+- The mail forwarder (`mail/`) reads these settings from the website database on every message, falling back
+  to the owner's address / hostmaster@trudj.net if the database can't be reached. No cPanel change needed to re-route.
+- cPanel (done 2026-10-15): Email Routing = Local; forwarder hostmaster@ -> `|/home/trudj/cleanbeans-mail/to-hostmaster.php`;
+  Default Address -> `|/home/trudj/cleanbeans-mail/to-becky.php`. DNS: DKIM `default._domainkey` added at Name.com (valid).
+
 ## 1.1.0 — 2026-10-15 — Job photos from Facebook, Our Work gallery
 
 - 430 photos from the Clean Beans Facebook page imported into the photo library (category "facebook"),
